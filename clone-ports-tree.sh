@@ -52,6 +52,7 @@ To install a commit message preparation hook, run:
 fetch -o ports/.git/hooks/prepare-commit-msg \\
   https://raw.githubusercontent.com/grembo/\
 committer-tools/main/ports-prepare-commit-msg
+chmod 755 ports/.git/hooks/prepare-commit-msg
 
 Happy hacking!
 "
