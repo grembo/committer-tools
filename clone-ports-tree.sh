@@ -36,7 +36,7 @@ git config user.name "$REALNAME"
 git config user.email "$HANDLE@FreeBSD.org"
 git config merge.renameLimit 999999
 git remote set-url --push freebsd \
-  ssh://git@gitrepo.freebsd.org/src.git
+  ssh://git@repo.freebsd.org/src.git
 
 echo
 echo "Your git config is:"
