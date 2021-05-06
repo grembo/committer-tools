@@ -15,9 +15,10 @@ Usage:
   realname      Your real name, as known to the project
                 (e.g., 'Michael Gmelin')
                              
-Example:
+Examples:
 
   $0 freebsd jd \"Jane Doe\"
+  $0 origin grembo \"Michael Gmelin\"
 
 "
   exit 1  
@@ -37,9 +38,13 @@ git config merge.renameLimit 999999
 git remote set-url --push freebsd \
   ssh://git@gitrepo.freebsd.org/src.git
 
+echo
 echo "Your git config is:"
 git config -l
-
+echo
+echo "Your git remotes are:"
+git remote -v
+echo
 echo "Successfully cloned and configured ports tree.
 
 To install a commit message preparation hook, run:
