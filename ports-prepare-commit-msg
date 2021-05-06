@@ -1,0 +1,109 @@
+#!/bin/sh
+
+# ports-prepare-commit-msg
+#
+# A little commit hook to prepare commit messages for the
+# FreeBSD ports tree.
+# Aims to automatically detect which ports were affected
+# and suggests a commit title.
+#
+# Based on:
+# https://cgit.freebsd.org/ports/tree/.hooks/prepare-commit-msg
+#
+# Install by copying into the git hooks directory - for example,
+# cp ports-prepare-commit-msg \
+#   path_to_ports_repo/.git/hooks/prepare-commit-msg
+
+case "$2" in
+commit|message)
+	# It appears git invokes this script for interactive rebase but does
+	# not remove commented lines, so just exit if we're not called with the
+	# default (comment-containing) template.
+	grep -E -q '^#' "$1" || exit 0
+	;;
+template)
+	exit 0
+	;;
+merge)
+	exit 0
+	;;
+esac
+
+outfile=$(mktemp /tmp/freebsd-git-commit.XXXXXXXX)
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=$(git hash-object -t tree /dev/null)
+fi
+
+PORTS=
+
+# only determine changed ports if we're not called for amend
+if [ -z "$3" ]; then
+	FILES=$(git diff-index --name-only --cached \
+	    --diff-filter=ACMR $against -- )
+	for f in $FILES; do
+		port=$(dirname $f | egrep "^[a-z]+/[^[:space:]]+$" \
+		    | awk -F/ '{ print $1"/"$2 }')
+		PORTS="${PORTS} $port"
+	done
+fi
+
+if [ -n "$PORTS" ]; then
+	portslist=$(echo $PORTS | tr " " "\n" | sort | uniq)
+	portsnum=$(echo "$portslist" | wc -l)
+	affected_ports=$(echo $(echo "$portslist" | head -n2) \
+	    | sed "s/ /, /g")
+	if [ "$portsnum" -gt 2 ]; then
+		affected_ports="$affected_ports, and $(($portsnum - 2)) more"
+	fi
+	firstline="# Uncomment and add a short description what changed:
+# $(echo $affected_ports): 
+"
+fi
+
+# Create a commit message template from three parts:
+#
+# 1. The beginning of the git-provided template (up to the first comment-only
+#    line) which explains commented lines and such.
+#
+# 2. Our template.
+#
+# 3. The remainder of the git-provided template (from the first comment-only
+#    line to the end of the file) which lists files staged for commit, files
+#    not staged, and untracked files.
+
+cat >"$outfile" <<EOF
+$firstline$(awk '1;/^#$/{exit}' $1)
+# category/port: Subject goes here, max 50 cols -|
+# <then a blank line>
+#                                                         72 columns --|
+#
+# Do not add a Submitted by line.  If someone besides the committer sent in the
+# change, the commit author should be set using \`git commit --author\`.
+#
+# Uncomment and complete these metadata fields, as appropriate:
+#
+# PR:		<If and which Problem Report is related.>
+# Reported by:	<If someone else reported the issue.>
+# Reviewed by:	<If someone else reviewed your modification.>
+# Tested by:	<If someone else tested the change.>
+# Approved by:	<If you needed approval for this commit.>
+# Obtained from:	<If the change is from a third party.>
+# Fixes:	<Short hash and title line of commit fixed by this change>
+# MFH:		<Ports tree branch name you plan to merge to.>
+# Relnotes:	<Set to 'yes' for mention in release notes.>
+# Security:	<Vulnerability reference (one per line) or description.>
+# Sponsored by:	<If the change was sponsored by an organization.>
+# Pull Request:	<https://github.com/freebsd/freebsd-ports/pull/###>
+# Differential Revision:	<https://reviews.freebsd.org/D###>
+#
+# "Pull Request" and "Differential Revision" require the *full* GitHub or
+# Phabricator URL.
+$(awk '/^#$/,EOF' "$1")
+EOF
+
+mv "$outfile" "$1"
