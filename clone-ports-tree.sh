@@ -40,7 +40,7 @@ git remote set-url --push freebsd \
 
 echo
 echo "Your git config is:"
-git config -l
+git config -l --show-origin
 echo
 echo "Your git remotes are:"
 git remote -v
