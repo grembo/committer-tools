@@ -63,7 +63,8 @@ if [ -n "$PORTS" ]; then
 		affected_ports="$affected_ports, and $(($portsnum - 2)) more"
 	fi
 	firstline="# Uncomment and add a short description of what changed:
-# $(echo $affected_ports): "
+# $(echo $affected_ports):$(echo " ")
+"
 fi
 
 # Create a commit message template from three parts:
@@ -78,8 +79,7 @@ fi
 #    not staged, and untracked files.
 
 cat >"$outfile" <<EOF
-$firstline
-$(awk '1;/^#$/{exit}' $1)
+$firstline$(awk '1;/^#$/{exit}' "$1")
 # category/port: Subject goes here, max 50 cols -|
 # <then a blank line>
 #                                                         72 columns --|
