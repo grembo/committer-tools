@@ -39,7 +39,7 @@ else
 	against=$(git hash-object -t tree /dev/null)
 fi
 
-PORTS=
+PORTS=""
 
 # only determine changed ports if we're not called for amend
 if [ -z "$3" ]; then
@@ -48,7 +48,9 @@ if [ -z "$3" ]; then
 	for f in $FILES; do
 		port=$(dirname $f | egrep "^[a-z]+/[^[:space:]]+$" \
 		    | awk -F/ '{ print $1"/"$2 }')
-		PORTS="${PORTS} $port"
+		if [ -n "$port" ]; then
+			PORTS="${PORTS} $port"
+		fi
 	done
 fi
 
@@ -60,9 +62,8 @@ if [ -n "$PORTS" ]; then
 	if [ "$portsnum" -gt 2 ]; then
 		affected_ports="$affected_ports, and $(($portsnum - 2)) more"
 	fi
-	firstline="# Uncomment and add a short description what changed:
-# $(echo $affected_ports): 
-"
+	firstline="# Uncomment and add a short description of what changed:
+# $(echo $affected_ports): "
 fi
 
 # Create a commit message template from three parts:
@@ -77,7 +78,8 @@ fi
 #    not staged, and untracked files.
 
 cat >"$outfile" <<EOF
-$firstline$(awk '1;/^#$/{exit}' $1)
+$firstline
+$(awk '1;/^#$/{exit}' $1)
 # category/port: Subject goes here, max 50 cols -|
 # <then a blank line>
 #                                                         72 columns --|
